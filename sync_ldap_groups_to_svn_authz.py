@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/python3
 #
 # -*-python-*-
 #
@@ -28,7 +28,7 @@
 # THE SOFTWARE.
 ################################################################################
 
-import ConfigParser, datetime, getpass, os, re, sys, tempfile, shutil
+import configparser, datetime, getpass, os, re, sys, tempfile, shutil
 from optparse import OptionParser
 
 try:
@@ -162,7 +162,7 @@ def get_groups(ldapobject):
       for i in range(len(result_set)):
         for entry in result_set[i]:
           groups.append(entry)
-    except ldap.NO_SUCH_OBJECT, e:
+    except ldap.NO_SUCH_OBJECT as e:
       if not silent:
         sys.stderr.write("Couldn't find a group with DN %s.\n" % group_dn)
       raise e
@@ -203,25 +203,26 @@ def get_members_from_group(group, ldapobject):
       sys.stdout.write("+")
     else:
       sys.stderr.write("+")
-  if group.has_key(group_member_attribute):
+  if group_member_attribute in group:
     group_members = group[group_member_attribute]
 
   # We need to check if the member is a group and handle specially
   for member in group_members:
     try:
+      member=member.decode('utf-8')
       user = get_ldap_search_resultset(member, user_query, ldapobject)
 
       if (len(user) == 1):
         # The member is a user
         attrs = user[0][0][1]
 
-        if (attrs.has_key(userid_attribute)):
+        if (userid_attribute in attrs):
           if verbose:
             if is_outfile_specified:
               sys.stdout.write(".")
             else:
               sys.stderr.write(".")
-          members.append(str.lower(attrs[userid_attribute][0]))
+          members.append(str.lower(attrs[userid_attribute][0].decode('utf-8')))
         else:
           if not silent:
             sys.stderr.write("[WARNING]: %s does not have the %s attribute...\n" \
@@ -247,7 +248,7 @@ def get_members_from_group(group, ldapobject):
           if not silent:
             sys.stderr.write("[WARNING]: %s is a member of %s but is neither a group " \
                              "nor a user.\n" % (member, group['cn'][0]))
-    except ldap.LDAPError, error_message:
+    except ldap.LDAPError as error_message:
       if not silent:
         sys.stderr.write("[WARNING]: %s object was not found...\n" % member)
   # uniq values
@@ -288,7 +289,7 @@ and will create a group membership model for each group."""
 def get_dict_key_from_value(dict, value):
   """Returns the key of the dictionary entry with the matching value."""
   
-  for k, v in dict.iteritems():
+  for k, v in dict.items():
     if (v == value):
       return k
   
@@ -304,10 +305,10 @@ def create_group_map(groups):
     for group in groups:
       cn = simplify_name(group[1]['cn'][0])
     
-      if (not groupmap.has_key(cn)):
+      if (not cn in groupmap):
         groupmap[cn] = group[0]
       else:
-        if (not dups.has_key(cn)):
+        if (not cn in dups):
           dups[cn] = 1
         else:
           index = dups[cn]
@@ -322,6 +323,10 @@ def create_group_map(groups):
 
 def simplify_name(name):
   """Creates an authz simple group name."""
+  try:
+    name = name.decode('utf-8')
+  except (UnicodeDecodeError, AttributeError):
+    pass
   return name if (keep_names) else re.sub("\W", "", name)
 
 # simplify_name()
@@ -373,7 +378,7 @@ def print_group_model(groups, memberships):
       tmpfile.close()
   
   if (os.path.exists(tmp_authz_path)):
-    cp = ConfigParser.ConfigParser()
+    cp = configparser.ConfigParser()
     cp.read(tmp_authz_path)
     
     if (not cp.has_section("groups")):
@@ -404,13 +409,7 @@ def print_group_model(groups, memberships):
 
   if groups:
     for i in range(len(groups)):
-      if (i != 0):
-        tmpfile.write("\n")
-  
       short_name = simplify_name(get_dict_key_from_value(groupmap, groups[i][0]))
-    
-      tmpfile.write(short_name + " = ")
-    
       users = []
       for j in range(len(memberships[i])):
         user = None
@@ -430,7 +429,11 @@ def print_group_model(groups, memberships):
         if user:
           users.append(user)
 
-      tmpfile.write(", ".join(users))
+      if users:
+        if (i != 0):
+          tmpfile.write("\n")
+        tmpfile.write(short_name + " = ")
+        tmpfile.write(", ".join(users))
   
   generate_legend(tmpfile, groups)
   
@@ -448,7 +451,10 @@ def print_group_model(groups, memberships):
       shutil.move(authz_path, authz_path + ".bak")
   
     shutil.move(tmp_authz_path, authz_path)
-    os.chmod(authz_path, filemode.st_mode)
+    try:
+      os.chmod(authz_path, filemode.st_mode)
+    except AttributeError:
+      pass
   else:
     tmpfile = open(tmp_authz_path, 'r')
 
@@ -684,7 +690,7 @@ def main():
 
   try:
     ldapobject = bind()
-  except ldap.LDAPError, error_message:
+  except ldap.LDAPError as error_message:
     sys.stderr.write("Could not connect to %s. Error: %s \n" % (url, error_message))
     sys.exit(1)
 
@@ -693,7 +699,7 @@ def main():
       groups = get_groups(ldapobject)    
     else:
       groups = search_for_groups(ldapobject)
-  except ldap.LDAPError, error_message:
+  except ldap.LDAPError as error_message:
     sys.stderr.write("Error performing search: %s \n" % error_message)
     sys.exit(1)
 
@@ -704,7 +710,7 @@ def main():
 
   try:
     memberships = create_group_model(groups, ldapobject)[1]
-  except ldap.LDAPError, error_message:
+  except ldap.LDAPError as error_message:
     sys.stderr.write("Error creating group model: %s\n" % error_message)
     sys.exit(1)
 

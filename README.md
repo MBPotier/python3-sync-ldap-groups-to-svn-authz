@@ -1,8 +1,10 @@
-# Disclaimer
-
-This script was written almost 10 years ago and has been barely maintained.  At the request of the community members I have moved this project from [BitBucket](https://bitbucket.org/whitlockjc/jw-tools) to GitHub.  *(During the migration I changed the license from GPLv3 to MIT.)*  My hope is that this will simplify the involvement of the community.  I do hope to spend some time on this project to get it rewritten not only to address the bugs reported but also to clean things up.  *(I wrote this when my Python kung fu was not all that great and it shows somewhat.)*
+# About
+This is a fork of the whitlockjc/sync-ldap-groups-to-svn-authz repository, with the primary goal of porting the project to python3. I may also add some additional features and improvements.
 
 # Change Log
+
+2022-10-04:
+- Ported to Python3 (there may be some edge cases that I have not tested for, create an issue if I missed something)
 
 2015-08-25 (version 1.3.0):
  - Better management of outputs: all errors/warnings are directed to stderr; info messages are given to stdout if an authz destination file is provided and are redirected to stderr otherwise.
